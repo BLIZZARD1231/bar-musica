@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>Admin - Musica del bar</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<style>
+  * { box-sizing: border-box; }
+  body { margin: 0; padding: 16px; font-family: system-ui, sans-serif; background: #121212; color: #fff; }
+  h1 { font-size: 20px; }
+  input { padding: 10px; font-size: 16px; border-radius: 8px; border: 0; }
+  button { padding: 10px 14px; font-size: 15px; border: 0; border-radius: 8px; background: #e91e63; color: #fff; cursor: pointer; margin: 4px 4px 4px 0; }
+  button.gray { background: #444; }
+  .item { display: flex; gap: 8px; align-items: center; padding: 8px 0; border-bottom: 1px solid #2a2a2a; font-size: 14px; }
+  .item .t { flex: 1; }
+  .now { background: #26263a; border-radius: 10px; padding: 12px; margin: 12px 0; }
+  #panel { display: none; }
+</style>
+</head>
+<body>
+<h1>Panel del bar</h1>
+<div id="login">
+  <input id="pin" type="password" placeholder="PIN" inputmode="numeric">
+  <button id="enter">Entrar</button>
+  <p id="err" style="color:#f66"></p>
+</div>
+<div id="panel">
+  <div class="now" id="now"></div>
+  <button id="skip">⏭ Saltar cancion</button>
+  <button id="clear" class="gray">Vaciar cola</button>
+  <h3>En cola</h3>
+  <div id="queue"></div>
+</div>
+
+<script>
+const $ = id => document.getElementById(id);
+let pin = sessionStorage.getItem('pin') || '';
+function esc(s) { return String(s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c])); }
+const hdr = () => ({ 'Content-Type': 'application/json', 'x-pin': pin });
+
+async function tryLogin() {
+  const r = await (await fetch('/api/check-pin', { headers: hdr() })).json();
+  if (r.ok) {
+    sessionStorage.setItem('pin', pin);
+    $('login').style.display = 'none';
+    $('panel').style.display = 'block';
+    refresh();
+    setInterval(refresh, 3000);
+  } else {
+    $('err').textContent = 'PIN incorrecto';
+  }
+}
+$('enter').onclick = () => { pin = $('pin').value; tryLogin(); };
+if (pin) tryLogin();
+
+async function refresh() {
+  const s = await (await fetch('/api/state')).json();
+  $('now').textContent = s.current ? '▶ ' + s.current.title : 'No suena nada';
+  $('queue').innerHTML = s.queue.map(x =>
+    `<div class="item"><div class="t">${esc(x.title)}</div><button class="gray" data-q="${x.qid}">Quitar</button></div>`
+  ).join('') || '<p style="color:#888">Cola vacia</p>';
+  $('queue').querySelectorAll('button').forEach(b => {
+    b.onclick = async () => {
+      await fetch('/api/remove', { method: 'POST', headers: hdr(), body: JSON.stringify({ qid: Number(b.dataset.q) }) });
+      refresh();
+    };
+  });
+}
+$('skip').onclick = async () => {
+  await fetch('/api/advance', { method: 'POST', headers: hdr(), body: '{}' });
+  refresh();
+};
+$('clear').onclick = async () => {
+  if (!confirm('¿Vaciar toda la cola?')) return;
+  await fetch('/api/clear', { method: 'POST', headers: hdr(), body: '{}' });
+  refresh();
+};
+</script>
+</body>
+</html>

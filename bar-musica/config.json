@@ -1,0 +1,7 @@
+{
+  "port": 3000,
+  "adminPin": "1234",
+  "maxPendingPerClient": 2,
+  "maxSeconds": 600,
+  "fallback": []
+}

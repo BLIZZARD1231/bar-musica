@@ -1,0 +1,22 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>QR para imprimir</title>
+<style>
+  body { font-family: system-ui, sans-serif; text-align: center; padding: 40px; }
+  img { width: 380px; height: 380px; }
+  h1 { font-size: 42px; margin-bottom: 0; }
+  p { font-size: 22px; color: #444; }
+  small { color: #888; }
+  @media print { small { display: none; } }
+</style>
+</head>
+<body>
+  <h1>🎵 Pide tu cancion</h1>
+  <p>Escanea el QR con tu celular</p>
+  <img src="/api/qr.svg" alt="QR">
+  <p><small id="u"></small></p>
+  <script>fetch('/api/info').then(r => r.json()).then(d => document.getElementById('u').textContent = d.url);</script>
+</body>
+</html>
